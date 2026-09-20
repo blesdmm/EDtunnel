@@ -12,23 +12,13 @@ on:
 jobs:
   obfuscate:
     runs-on: ubuntu-latest
+    
+    # 【重要】确保这里有写入权限
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      # 【关键防循环】如果最后一次提交是 GitHub Actions 机器人自己提交的，则直接退出，防止无限循环
-      - name: Check if latest commit is from bot
-        if: github.event_name == 'push'
-        run: |
-          AUTHOR_EMAIL=$(git log -1 --pretty=format:"%ae")
-          if [ "$AUTHOR_EMAIL" = "github-actions[bot]@users.noreply.github.com" ]; then
-            echo "Latest commit was made by GitHub Actions. Skipping to prevent infinite loop."
-            exit 0
-          fi
 
       - name: Use Node.js
         uses: actions/setup-node@v3
@@ -41,23 +31,12 @@ jobs:
       - name: Obfuscate code
         run: npm run obfuscate
 
-      - name: Commit changes
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add _worker.js
-          
-          # 检查是否有文件真的发生了改变
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-          
-          PREV_MSG=$(git log -1 --pretty=format:"%s" HEAD)
-          git commit -m "Obfuscate _worker.js ($PREV_MSG)"
-
-      - name: Push changes
-        uses: ad-m/github-push-action@master
+      # 使用成熟的自动提交和推送插件，省去手动配 git config 和 push 的麻烦
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          commit_message: "Obfuscate _worker.js"
+          file_pattern: "_worker.js"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+          skip_ci: true # 【关键】自动在 commit 信息中加入 [skip ci]，防止 GitHub Actions 无限循环触发
