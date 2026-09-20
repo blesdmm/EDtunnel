@@ -12,8 +12,6 @@ on:
 jobs:
   obfuscate:
     runs-on: ubuntu-latest
-    
-    # 【重要】确保这里有写入权限
     permissions:
       contents: write
 
@@ -26,12 +24,11 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Obfuscate code
         run: npm run obfuscate
 
-      # 使用成熟的自动提交和推送插件，省去手动配 git config 和 push 的麻烦
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
@@ -39,4 +36,4 @@ jobs:
           file_pattern: "_worker.js"
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
-          skip_ci: true # 【关键】自动在 commit 信息中加入 [skip ci]，防止 GitHub Actions 无限循环触发
+          skip_ci: true
