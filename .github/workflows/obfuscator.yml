@@ -20,6 +20,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 【关键防循环】如果最后一次提交是 GitHub Actions 机器人自己提交的，则直接退出，防止无限循环
+      - name: Check if latest commit is from bot
+        if: github.event_name == 'push'
+        run: |
+          AUTHOR_EMAIL=$(git log -1 --pretty=format:"%ae")
+          if [ "$AUTHOR_EMAIL" = "github-actions[bot]@users.noreply.github.com" ]; then
+            echo "Latest commit was made by GitHub Actions. Skipping to prevent infinite loop."
+            exit 0
+          fi
+
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -36,8 +46,15 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add _worker.js
+          
+          # 检查是否有文件真的发生了改变
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          
           PREV_MSG=$(git log -1 --pretty=format:"%s" HEAD)
-          git commit -m "Obfuscate _worker.js ($PREV_MSG)" || echo "No changes to commit"
+          git commit -m "Obfuscate _worker.js ($PREV_MSG)"
 
       - name: Push changes
         uses: ad-m/github-push-action@master
