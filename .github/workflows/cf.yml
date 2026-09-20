@@ -92,7 +92,7 @@ jobs:
           node-version: "22"
 
       - name: 🏗 Get dependencies
-        run: npm i
+        run: npm i --legacy-peer-deps
 
       - name: 📚 Wrangler publish
         # github.com/cloudflare/wrangler-action
